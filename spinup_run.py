@@ -1,11 +1,10 @@
 from spinup.utils.run_utils import ExperimentGrid
-from spinup import ppo_pytorch
+from spinup import td3_tf1
 import gym
-import torch
+import tensorflow as tf
 
 def run_experiment(args):
     def env_fn():
-        import HumanoidRL
         return gym.make(args.env_name, render=args.render)
 
     eg = ExperimentGrid(name=args.exp_name)
@@ -15,8 +14,8 @@ def run_experiment(args):
     eg.add('steps_per_epoch', args.steps_per_epoch)
     eg.add('save_freq', args.save_freq)
     eg.add('max_ep_len', args.max_ep_len)
-    eg.add('ac_kwargs:activation', torch.nn.Tanh, '')
-    eg.run(ppo_pytorch, data_dir=args.data_dir, num_cpu=args.cpu)
+    eg.add('ac_kwargs:activation', tf.math.tanh, '')
+    eg.run(td3_tf1, data_dir=args.data_dir, num_cpu=args.cpu)
 
 if __name__ == '__main__':
     import argparse

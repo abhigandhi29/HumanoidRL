@@ -48,8 +48,11 @@ class Utility:
         self.bodyAng = np.zeros((1, 3))
         self.bodyVel = np.zeros((1, 3))
         self.bodyAngVel = np.zeros((1, 3))
-        self.observation = np.empty((len(self.jointIndex)+3, 1))
+        self.feetContact = np.zeros((1, 2))
+        self.targetX = 1e2
+        self.targetY = 0
         self.nao = None
+        self.observation = np.empty((len(self.jointIndex)*2+14, 1))
 
     def init_bot(self, freq, render):
         """Initialising the paramters of bot and simulation
@@ -85,23 +88,29 @@ class Utility:
 
     def init_joints(self):
         """Initialising the starting joint values"""
-        for i in range(50):
-            for joint, index in self.jointIndex.items():
-                p.setJointMotorControl2(self.nao, index[0], p.POSITION_CONTROL,
-                                        targetPosition=0, force=1000)
-                # p.enableJointForceTorqueSensor(self.nao, index[0], enableSensor=1)
 
-            # Uncomment this to  make the arms hang down and not forward
-            # shoulderPitch = np.pi / 2.
-            # shoulderRoll = 0.1
-            # p.setJointMotorControl2(self.nao, 56, p.POSITION_CONTROL,
-            #                         targetPosition=shoulderPitch, force=1000)
-            # p.setJointMotorControl2(self.nao, 39, p.POSITION_CONTROL,
-            #                         targetPosition=shoulderPitch, force=1000)
-            # p.setJointMotorControl2(self.nao, 57, p.POSITION_CONTROL,
-            #                         targetPosition=-shoulderRoll, force=1000)
-            # p.setJointMotorControl2(self.nao, 40, p.POSITION_CONTROL,
-            #                         targetPosition=shoulderRoll, force=1000)
+        for joint, index in self.jointIndex.items():
+            p.setJointMotorControl2(self.nao, index[0], p.POSITION_CONTROL,
+                                    position_gain=0.01,
+                                    velocity_gain=0.01,
+                                    targetPosition=0, force=1000)
+            # p.enableJointForceTorqueSensor(self.nao, index[0], enableSensor=1)
+
+        # Uncomment this to  make the arms hang down and not forward
+        # shoulderPitch = np.pi / 2.
+        # shoulderRoll = 0.1
+        # p.setJointMotorControl2(self.nao, 56, p.POSITION_CONTROL,
+        #                         targetPosition=shoulderPitch, force=1000)
+        # p.setJointMotorControl2(self.nao, 39, p.POSITION_CONTROL,
+        #                         targetPosition=shoulderPitch, force=1000)
+        # p.setJointMotorControl2(self.nao, 57, p.POSITION_CONTROL,
+        #                         targetPosition=-shoulderRoll, force=1000)
+        # p.setJointMotorControl2(self.nao, 40, p.POSITION_CONTROL,
+        #                         targetPosition=shoulderRoll, force=1000)
+        p.stepSimulation()
+        time.sleep(self.timeStep)
+
+        for i in range(50):
             p.stepSimulation()
             time.sleep(self.timeStep)
 
@@ -122,7 +131,11 @@ class Utility:
         """Getting the joint values"""
         self.update_joints()
         self.update_feet()
-        self.observation[:, :] = np.vstack((self.jointPos, self.bodyPos.T))
+        self.update_pos()
+        pos = np.array([self.targetX - self.bodyPos[0], self.targetY -
+                        self.bodyPos[1]/(self.targetX - self.bodyPos[0]), self.bodyPos[2]])
+        self.observation[:, :] = np.vstack((self.jointPos, self.jointVel, pos, self.bodyAng.T,
+                                            self.bodyVel.T, self.bodyAngVel.T  self.feetContact))
         return np.squeeze(self.observation, axis=1)
 
     def update_joints(self):
@@ -142,6 +155,7 @@ class Utility:
         """Updating the feet COM values"""
         temp = p.getLinkStates(self.nao, self.feetIndex)
         self.feetCOM = np.vstack((temp[0][0], temp[1][0]))
+        self.feetContact = np.array(self.feetCOM[:, 2] < 0.05, dtype=np.float)
 
     def kill_bot(self):
         """To disconnect from the server"""
