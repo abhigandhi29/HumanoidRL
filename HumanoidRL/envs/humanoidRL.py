@@ -1,5 +1,5 @@
 from HumanoidRL.envs import Utility as ut
-from HumanoidRL.envs.rewards import *
+from HumanoidRL.envs.rewards import get_reward
 import gym
 from gym import spaces
 import numpy as np
@@ -27,7 +27,7 @@ class HumanoidEnv(gym.Env):
                                  2.08567, 1.54462])
         self.action_mean = (action_highs+action_lows)/2
         self.action_range = (action_highs-action_lows)/2
-        ac, ob = np.ones(self.action_size), np.full(
+        ac, obs = np.ones(self.action_size), np.full(
             self.observation_size, np.inf)
         self.action_space = spaces.Box(low=ac*(-1),
                                        high=ac)
