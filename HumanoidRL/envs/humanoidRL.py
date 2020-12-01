@@ -10,12 +10,12 @@ class HumanoidEnv(gym.Env):
 
     def __init__(self, render=False):
         self.Nao = None
-        self.freq = 240
+        self.freq = 60 if render else 240
         self.render = render
         self.force_motor = 1000
         self.min_z, self.max_z = 0.2, 0.4
         self.Nao = ut.Utility()
-        self.action_size = 22
+        self.action_size = 20
         self.observation_size = self.Nao.observation.shape[0]
         action_lows = np.array([-1.14529, -0.379435, -1.53589, -0.0923279, -1.18944,
                                 -0.397761, -1.14529, -0.79046, -1.53589, -0.0923279,
