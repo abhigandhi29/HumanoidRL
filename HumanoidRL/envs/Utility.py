@@ -39,20 +39,23 @@ class Utility:
         }
         self.feetIndex = [17, 30]
         self.feetCOM = np.zeros((2, 3))
-        self.jointPos = np.zeros((len(self.jointIndex), 1))
-        self.jointVel = np.zeros((len(self.jointIndex), 1))
+        self.jointPos = np.zeros(len(self.jointIndex))
+        self.jointVel = np.zeros(len(self.jointIndex))
         self.jointF = np.zeros((len(self.jointIndex), 3))
         self.jointT = np.zeros((len(self.jointIndex), 3))
-        self.appliedT = np.zeros((len(self.jointIndex), 1))
-        self.bodyPos = np.zeros((1, 3))
-        self.bodyAng = np.zeros((1, 3))
-        self.bodyVel = np.zeros((1, 3))
-        self.bodyAngVel = np.zeros((1, 3))
-        self.feetContact = np.zeros((1, 2))
+        self.appliedT = np.zeros(len(self.jointIndex))
+        self.bodyPos = np.zeros(3)
+        self.bodyAng = np.zeros(3)
+        self.bodyVel = np.zeros(3)
+        self.bodyAngVel = np.zeros(3)
+        self.feetContact = np.zeros(2)
         self.targetX = 1e2
         self.targetY = 0
         self.nao = None
-        self.observation = np.empty((len(self.jointIndex)*2+14, 1))
+        pos = np.array([self.targetX - self.bodyPos[0], self.targetY -
+                        self.bodyPos[1]/(self.targetX - self.bodyPos[0]), self.bodyPos[2]])
+        self.observation = np.hstack((self.jointPos, self.jointVel, pos, self.bodyAng,
+                                            self.bodyVel, self.bodyAngVel,  self.feetContact))
 
     def init_bot(self, freq, render):
         """Initialising the paramters of bot and simulation
@@ -91,8 +94,8 @@ class Utility:
 
         for joint, index in self.jointIndex.items():
             p.setJointMotorControl2(self.nao, index[0], p.POSITION_CONTROL,
-                                    position_gain=0.01,
-                                    velocity_gain=0.01,
+                                    # positionGain=0.01,
+                                    # velocityGain=0.01,
                                     targetPosition=0, force=1000)
             # p.enableJointForceTorqueSensor(self.nao, index[0], enableSensor=1)
 
@@ -131,25 +134,24 @@ class Utility:
         """Getting the joint values"""
         self.update_joints()
         self.update_feet()
-        self.update_pos()
         pos = np.array([self.targetX - self.bodyPos[0], self.targetY -
                         self.bodyPos[1]/(self.targetX - self.bodyPos[0]), self.bodyPos[2]])
-        self.observation[:, :] = np.vstack((self.jointPos, self.jointVel, pos, self.bodyAng.T,
-                                            self.bodyVel.T, self.bodyAngVel.T  self.feetContact))
-        return np.squeeze(self.observation, axis=1)
+        self.observation[:] = np.hstack((self.jointPos, self.jointVel, pos, self.bodyAng,
+                                            self.bodyVel, self.bodyAngVel,  self.feetContact))
+        return np.squeeze(self.observation)
 
     def update_joints(self):
         """Updating the joint values"""
         for joint, index in self.jointIndex.items():
             temp = p.getJointState(self.nao, index[0])
-            self.jointPos[index[1], :] = temp[0]
-            self.jointVel[index[1], :] = temp[1]
+            self.jointPos[index[1]] = temp[0]
+            self.jointVel[index[1]] = temp[1]
             self.jointF[index[1], :] = temp[2][:3]
             self.jointT[index[1], :] = temp[2][:-3]
-            self.appliedT[index[1], :] = temp[3]
-        self.bodyPos[:, :], temp = p.getBasePositionAndOrientation(self.nao)
-        self.bodyAng[:, :] = p.getEulerFromQuaternion(temp)
-        self.bodyVel[:, :], self.bodyAngVel[:, :] = p.getBaseVelocity(self.nao)
+            self.appliedT[index[1]] = temp[3]
+        self.bodyPos[:], temp = p.getBasePositionAndOrientation(self.nao)
+        self.bodyAng[:] = p.getEulerFromQuaternion(temp)
+        self.bodyVel[:], self.bodyAngVel[:] = p.getBaseVelocity(self.nao)
 
     def update_feet(self):
         """Updating the feet COM values"""

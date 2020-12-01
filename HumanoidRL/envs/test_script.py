@@ -6,6 +6,7 @@ import Utility as ut
 import pickle
 import argparse
 import numpy as np
+import HumanoidRL
 
 """File containing the sample walk i.e. the joint angles per frame"""
 path = "walk_positions.pckl"
@@ -40,11 +41,11 @@ def test_env(render):
     env = gym.make("HumanoidRL-v0", render=render)
     obs = env.reset()
     for configs in poses:
-        action = np.array[configs[6], configs[1], configs[10], configs[2], configs[18],
+        action = np.array([configs[6], configs[1], configs[10], configs[2], configs[18],
                   configs[12], configs[8], configs[4], configs[5], configs[14],
                   configs[0], configs[11], configs[19], configs[13],
                   configs[9], configs[15], configs[3], configs[7],
-                  configs[16], configs[17]]
+                  configs[16], configs[17]])
         action = (action-action_mean)/action_range
         obs, rew, done, w = env.step(action)
 
